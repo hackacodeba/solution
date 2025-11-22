@@ -218,8 +218,10 @@
                         <div class="card">
                             <div class="card-header">Upload experimental (POC)</div>
                             <div class="card-body">
-                                <input type="file" id="fileInput" accept=".xlsx,.xls" class="form-control mb-3">
-                                <p>Selecione um arquivo Excel (.xlsx ou .xls) para gerar um gráfico baseado nos dados.</p>
+                                <input type="file" id="fileInput" accept=".csv" class="form-control mb-3">
+                                <p>Envie um CSV no padrão CODEBA para validar e gerar visualizações.</p>
+                                <div id="upload-summary" class="alert mt-3" style="display:none;"></div>
+                                <ul id="upload-errors" class="list-group small mt-3"></ul>
                                 <canvas id="chart" width="400" height="200"></canvas>
                             </div>
                         </div>
