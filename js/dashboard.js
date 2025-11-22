@@ -16,9 +16,10 @@ function drawPieChart(canvasId, data, colors) {
     });
 }
 
-// Dados fictícios para gráficos
-drawPieChart('chartEstadia', [18.1, 19.2, 20.3], ['#007bff', '#28a745', '#dc3545']);
-drawPieChart('chartNavios', [230, 180, 150], ['#007bff', '#28a745', '#dc3545']);
+// Dados fictícios para gráficos com nova paleta
+const palette = ['#1d4ed8', '#0ea5e9', '#a855f7'];
+drawPieChart('chartEstadia', [18.1, 19.2, 20.3], palette);
+drawPieChart('chartNavios', [230, 180, 150], palette);
 
 function showOverview() {
     document.getElementById('overview').style.display = 'block';
@@ -76,8 +77,8 @@ function handleFile(event) {
                     datasets: [{
                         label: 'Contagem por Porto',
                         data: dataValues,
-                        backgroundColor: '#007bff',
-                        borderColor: '#0056b3',
+                        backgroundColor: '#1d4ed8',
+                        borderColor: '#1e40af',
                         borderWidth: 1
                     }]
                 },
