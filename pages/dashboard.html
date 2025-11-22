@@ -170,15 +170,53 @@
         <!-- Analysis Section -->
         <div id="analises" style="display: none;">
             <div class="dashboard-header">
-                <h1>Análise de Dados - CODEBA</h1>
-                <p>Upload e Análise de Arquivos Excel</p>
+                <h1>Análises Operacionais</h1>
+                <p>Insights gerados automaticamente a partir das bases CODEBA.</p>
             </div>
+
+            <div id="analises-alert" class="alert alert-danger mt-4" style="display:none;"></div>
+
+            <section class="filters-panel">
+                <div class="filters-header">
+                    <h5>Filtros</h5>
+                    <small>Combine filtros para refinar os indicadores exibidos abaixo.</small>
+                </div>
+                <div class="filters-grid">
+                    <div>
+                        <label for="filter-year" class="form-label">Ano de atracação</label>
+                        <select id="filter-year" class="form-select">
+                            <option value="all">Todos os anos</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label for="filter-porto" class="form-label">Porto</label>
+                        <select id="filter-porto" class="form-select">
+                            <option value="all">Todos os portos</option>
+                        </select>
+                    </div>
+                </div>
+            </section>
+
+            <section class="analises-grid">
+                <div class="analises-card">
+                    <h6>Evolução mensal de atracações</h6>
+                    <canvas id="chart1"></canvas>
+                </div>
+                <div class="analises-card">
+                    <h6>Tempo médio de estadia</h6>
+                    <canvas id="chart2"></canvas>
+                </div>
+                <div class="analises-card">
+                    <h6>Distribuição dos tipos de carga</h6>
+                    <canvas id="chart3"></canvas>
+                </div>
+            </section>
 
             <div class="container mt-4">
                 <div class="row">
                     <div class="col-md-12">
                         <div class="card">
-                            <div class="card-header">Upload de Arquivo Excel</div>
+                            <div class="card-header">Upload experimental (POC)</div>
                             <div class="card-body">
                                 <input type="file" id="fileInput" accept=".xlsx,.xls" class="form-control mb-3">
                                 <p>Selecione um arquivo Excel (.xlsx ou .xls) para gerar um gráfico baseado nos dados.</p>
@@ -202,6 +240,7 @@
 
     <!-- Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="../js/analises-charts.js"></script>
     <script src="../js/dashboard.js"></script>
 </body>
 </html>

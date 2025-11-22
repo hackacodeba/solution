@@ -29,6 +29,9 @@ function showOverview() {
 function showAnalises() {
     document.getElementById('overview').style.display = 'none';
     document.getElementById('analises').style.display = 'block';
+    if (typeof window.initAnalisesDashboard === 'function') {
+        window.initAnalisesDashboard();
+    }
 }
 
 function showPortos() {
