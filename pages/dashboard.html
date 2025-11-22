@@ -219,10 +219,31 @@
                             <div class="card-header">Upload experimental (POC)</div>
                             <div class="card-body">
                                 <input type="file" id="fileInput" accept=".csv" class="form-control mb-3">
-                                <p>Envie um CSV no padrão CODEBA para validar e gerar visualizações.</p>
+                                <button id="generate-report" class="btn btn-outline-primary btn-sm" type="button">Gerar relatório</button>
+                                <p class="mt-3">Envie um CSV no padrão CODEBA para validar e gerar visualizações.</p>
                                 <div id="upload-summary" class="alert mt-3" style="display:none;"></div>
-                                <ul id="upload-errors" class="list-group small mt-3"></ul>
-                                <canvas id="chart" width="400" height="200"></canvas>
+                                <div class="row g-3 mt-2">
+                                    <div class="col-md-6">
+                                        <div class="ratio ratio-4x3">
+                                            <canvas id="uploadErrorsFieldChart"></canvas>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="ratio ratio-4x3">
+                                            <canvas id="uploadErrorsCategoryChart"></canvas>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="mt-4">
+                                    <canvas id="chart" width="400" height="200"></canvas>
+                                </div>
+                                <details id="upload-errors-details" class="mt-4" style="display:none;">
+                                    <summary class="btn btn-link p-0">Ver detalhes dos erros</summary>
+                                    <div class="mt-3">
+                                        <ul id="upload-errors" class="list-group small"></ul>
+                                        <div id="upload-errors-pagination" class="d-flex align-items-center gap-2 mt-3"></div>
+                                    </div>
+                                </details>
                             </div>
                         </div>
                     </div>

@@ -22,6 +22,19 @@ const palette = ['#1d4ed8', '#0ea5e9', '#a855f7'];
 drawPieChart('chartEstadia', [18.1, 19.2, 20.3], palette);
 drawPieChart('chartNavios', [230, 180, 150], palette);
 
+const UPLOAD_STATE = {
+    errors: [],
+    rows: [],
+    currentErrorPage: 1,
+    charts: {
+        validData: null,
+        errorFields: null,
+        errorCategories: null,
+    },
+};
+
+const ERROR_PAGE_SIZE = 8;
+
 // --- Upload CSV validation constants ---
 const EXPECTED_HEADERS = [
     'SENTIDO', 'NAVEGACAO', 'PAIS_PORTO_ESTRANG', 'REGIAO_ORIGEM', 'BERCO',
@@ -56,6 +69,15 @@ const DOMAIN_SETS = {
 };
 
 const YEAR_RANGE = { min: 2020, max: 2030 };
+
+const ERROR_CATEGORIES = {
+    STRUCTURE: 'Estrutura',
+    REQUIRED: 'Obrigatoriedade',
+    FORMAT: 'Formato',
+    DOMAIN: 'Domínio',
+    DATE: 'Data',
+    CONSISTENCY: 'Consistência',
+};
 
 function showOverview() {
     document.getElementById('overview').style.display = 'block';
@@ -94,17 +116,23 @@ function handleFile(event) {
         try {
             const text = e.target.result;
             const { header, rows } = parseCsvContent(text);
-            const errors = validateCsvData(header, rows);
+            const validationResult = validateCsvData(header, rows);
 
-            if (errors.length) {
-                showUploadSummary(`Foram encontrados ${errors.length} erro(s). Corrija o arquivo e tente novamente.`, 'danger');
-                renderUploadErrors(errors);
-                window.myChart && window.myChart.destroy();
+            UPLOAD_STATE.errors = validationResult.errors;
+            UPLOAD_STATE.rows = rows;
+            UPLOAD_STATE.currentErrorPage = 1;
+
+            if (validationResult.errors.length) {
+                showUploadSummary(`Foram encontrados ${validationResult.errors.length} erro(s). Corrija o arquivo e tente novamente.`, 'danger');
+                renderUploadErrors(validationResult.errors);
+                renderErrorCharts(validationResult);
+                renderUploadedChart([]);
                 return;
             }
 
             showUploadSummary(`Arquivo válido! ${rows.length} linha(s) processadas.`, 'success');
             renderUploadErrors([]);
+            renderErrorCharts(validationResult);
             renderUploadedChart(rows);
         } catch (error) {
             showUploadSummary(`Erro ao processar o arquivo: ${error.message}`, 'danger');
@@ -114,6 +142,7 @@ function handleFile(event) {
 }
 
 document.getElementById('fileInput').addEventListener('change', handleFile);
+document.getElementById('generate-report').addEventListener('click', handleGenerateReport);
 
 function parseCsvContent(text) {
     const lines = text.split(/\r?\n/).filter((line) => line.trim().length);
@@ -161,39 +190,56 @@ function splitCsvLine(line) {
 }
 
 function validateCsvData(header, rows) {
-    const errors = [];
-    errors.push(...validateStructure(header));
+    const collector = createErrorCollector();
+    validateStructure(header, collector);
     const context = { navioImo: new Map() };
 
     rows.forEach((row, index) => {
         const lineNumber = index + 2; // Accounting for header
-        errors.push(...validateRow(row, lineNumber, context));
+        validateRow(row, lineNumber, context, collector);
     });
 
-    return errors;
+    return {
+        errors: collector.entries,
+        fieldCounts: collector.fieldCounts,
+        categoryCounts: collector.categoryCounts,
+    };
 }
 
-function validateStructure(header) {
-    const errors = [];
+function createErrorCollector() {
+    return {
+        entries: [],
+        fieldCounts: new Map(),
+        categoryCounts: new Map(),
+        add(line, field, category, message) {
+            this.entries.push({ line, field, category, message });
+            if (field) {
+                this.fieldCounts.set(field, (this.fieldCounts.get(field) || 0) + 1);
+            }
+            if (category) {
+                this.categoryCounts.set(category, (this.categoryCounts.get(category) || 0) + 1);
+            }
+        },
+    };
+}
+
+function validateStructure(header, collector) {
     if (header.length !== EXPECTED_HEADERS.length) {
-        errors.push(`Estrutura inválida: esperado ${EXPECTED_HEADERS.length} colunas, encontrado ${header.length}.`);
-        return errors;
+        collector.add(null, null, ERROR_CATEGORIES.STRUCTURE, `Estrutura inválida: esperado ${EXPECTED_HEADERS.length} colunas, encontrado ${header.length}.`);
+        return;
     }
 
     EXPECTED_HEADERS.forEach((expected, idx) => {
         if (header[idx] !== expected) {
-            errors.push(`Estrutura inválida: coluna ${idx + 1} deveria ser "${expected}", mas é "${header[idx]}".`);
+            collector.add(null, expected, ERROR_CATEGORIES.STRUCTURE, `Coluna ${idx + 1} deveria ser "${expected}", mas é "${header[idx]}".`);
         }
     });
-
-    return errors;
 }
 
-function validateRow(row, lineNumber, context) {
-    const errors = [];
+function validateRow(row, lineNumber, context, collector) {
     EXPECTED_HEADERS.forEach((field) => {
         if (!row[field] && row[field] !== '0') {
-            errors.push(`Linha ${lineNumber}: campo ${field} é obrigatório.`);
+            collector.add(lineNumber, field, ERROR_CATEGORIES.REQUIRED, `Campo ${field} é obrigatório.`);
         }
     });
 
@@ -201,98 +247,96 @@ function validateRow(row, lineNumber, context) {
         const value = row[field];
         if (value === undefined) return;
         if (!/^[-]?\d+$/.test(value)) {
-            errors.push(`Linha ${lineNumber}: campo ${field} deve ser um número inteiro.`);
+            collector.add(lineNumber, field, ERROR_CATEGORIES.FORMAT, `Campo ${field} deve ser um número inteiro.`);
         }
     });
 
-    validateDomain('SENTIDO', row.SENTIDO, lineNumber, errors);
-    validateDomain('NAVEGACAO', row.NAVEGACAO, lineNumber, errors);
-    validateDomain('REGIAO_ORIGEM', row.REGIAO_ORIGEM, lineNumber, errors);
-    validateDomain('BERCO', row.BERCO, lineNumber, errors);
-    ['PORTO_ATRACACAO', 'PORTO_ORIGEM', 'PORTO_DESTINO'].forEach((field) => validateDomain(field, row[field], lineNumber, errors));
-    validateDomain('TIPO_CARGA', row.TIPO_CARGA, lineNumber, errors);
-    validateDomain('TIPO_CARGA_MACRO', row.TIPO_CARGA_MACRO, lineNumber, errors);
-    validateDomain('PORTE_NAVIO', row.PORTE_NAVIO, lineNumber, errors);
-    validateDomain('CLIMA_DIA', row.CLIMA_DIA, lineNumber, errors);
-    validateDomain('MARE_DIA', row.MARE_DIA, lineNumber, errors);
-    validateDomain('DIA_SEMANA', row.DIA_SEMANA, lineNumber, errors);
-    validateDomain('TURNO', row.TURNO, lineNumber, errors);
+    validateDomain('SENTIDO', row.SENTIDO, lineNumber, collector);
+    validateDomain('NAVEGACAO', row.NAVEGACAO, lineNumber, collector);
+    validateDomain('REGIAO_ORIGEM', row.REGIAO_ORIGEM, lineNumber, collector);
+    validateDomain('BERCO', row.BERCO, lineNumber, collector);
+    ['PORTO_ATRACACAO', 'PORTO_ORIGEM', 'PORTO_DESTINO'].forEach((field) => validateDomain(field, row[field], lineNumber, collector));
+    validateDomain('TIPO_CARGA', row.TIPO_CARGA, lineNumber, collector);
+    validateDomain('TIPO_CARGA_MACRO', row.TIPO_CARGA_MACRO, lineNumber, collector);
+    validateDomain('PORTE_NAVIO', row.PORTE_NAVIO, lineNumber, collector);
+    validateDomain('CLIMA_DIA', row.CLIMA_DIA, lineNumber, collector);
+    validateDomain('MARE_DIA', row.MARE_DIA, lineNumber, collector);
+    validateDomain('DIA_SEMANA', row.DIA_SEMANA, lineNumber, collector);
+    validateDomain('TURNO', row.TURNO, lineNumber, collector);
 
     if (!/^Secao\s+\d+$/i.test(row.SECAO || '')) {
-        errors.push(`Linha ${lineNumber}: campo SECAO deve seguir o padrão "Secao X".`);
+        collector.add(lineNumber, 'SECAO', ERROR_CATEGORIES.DOMAIN, 'Campo SECAO deve seguir o padrão "Secao X".');
     }
 
     if (!/^Grupo\s+(10|[1-9])$/.test(row.GRUPOANTAQ || '')) {
-        errors.push(`Linha ${lineNumber}: campo GRUPOANTAQ deve estar entre Grupo 1 e Grupo 10.`);
+        collector.add(lineNumber, 'GRUPOANTAQ', ERROR_CATEGORIES.DOMAIN, 'Campo GRUPOANTAQ deve estar entre Grupo 1 e Grupo 10.');
     }
 
     if (!/^\d{7}$/.test(row.IMO || '')) {
-        errors.push(`Linha ${lineNumber}: campo IMO deve conter exatamente 7 dígitos.`);
+        collector.add(lineNumber, 'IMO', ERROR_CATEGORIES.FORMAT, 'Campo IMO deve conter exatamente 7 dígitos.');
     }
 
-    validateNavioImo(row, lineNumber, context, errors);
-    validateDates(row, lineNumber, errors);
-
-    return errors;
+    validateNavioImo(row, lineNumber, context, collector);
+    validateDates(row, lineNumber, collector);
 }
 
-function validateDomain(field, value, lineNumber, errors) {
+function validateDomain(field, value, lineNumber, collector) {
     if (!DOMAIN_SETS[field]) return;
     if (!DOMAIN_SETS[field].has(value)) {
-        errors.push(`Linha ${lineNumber}: valor inválido para ${field}.`);
+        collector.add(lineNumber, field, ERROR_CATEGORIES.DOMAIN, `Valor inválido para ${field}.`);
     }
 }
 
-function validateNavioImo(row, lineNumber, context, errors) {
+function validateNavioImo(row, lineNumber, context, collector) {
     const navio = row.NAVIO;
     const imo = row.IMO;
     if (!navio || !imo) return;
 
     const stored = context.navioImo.get(navio);
     if (stored && stored !== imo) {
-        errors.push(`Linha ${lineNumber}: IMO ${imo} não corresponde ao navio ${navio} (esperado ${stored}).`);
+        collector.add(lineNumber, 'IMO', ERROR_CATEGORIES.CONSISTENCY, `IMO ${imo} não corresponde ao navio ${navio} (esperado ${stored}).`);
     } else if (!stored) {
         context.navioImo.set(navio, imo);
     }
 }
 
-function validateDates(row, lineNumber, errors) {
+function validateDates(row, lineNumber, collector) {
     const atracacao = parseDate(row.ATRACACAO);
     const desatracacao = parseDate(row.DESATRACACAO);
 
     if (!atracacao) {
-        errors.push(`Linha ${lineNumber}: ATRACACAO inválida.`);
+        collector.add(lineNumber, 'ATRACACAO', ERROR_CATEGORIES.DATE, 'ATRACACAO inválida.');
     }
     if (!desatracacao) {
-        errors.push(`Linha ${lineNumber}: DESATRACACAO inválida.`);
+        collector.add(lineNumber, 'DESATRACACAO', ERROR_CATEGORIES.DATE, 'DESATRACACAO inválida.');
     }
 
     if (atracacao) {
         const atracaoYear = atracacao.getFullYear();
         const atracaoMonth = atracacao.getMonth() + 1;
         if (!isYearInRange(atracaoYear)) {
-            errors.push(`Linha ${lineNumber}: ano da ATRACACAO fora do intervalo permitido (2020-2030).`);
+            collector.add(lineNumber, 'ATRACACAO', ERROR_CATEGORIES.DATE, 'Ano da ATRACACAO fora do intervalo permitido (2020-2030).');
         }
         if (Number(row.ANO_ATRAC) !== atracaoYear) {
-            errors.push(`Linha ${lineNumber}: ANO_ATRAC deve ser ${atracaoYear}.`);
+            collector.add(lineNumber, 'ANO_ATRAC', ERROR_CATEGORIES.CONSISTENCY, `ANO_ATRAC deve ser ${atracaoYear}.`);
         }
         if (Number(row.MES_ATRAC) !== atracaoMonth) {
-            errors.push(`Linha ${lineNumber}: MES_ATRAC deve ser ${atracaoMonth}.`);
+            collector.add(lineNumber, 'MES_ATRAC', ERROR_CATEGORIES.CONSISTENCY, `MES_ATRAC deve ser ${atracaoMonth}.`);
         }
     }
 
     if (desatracacao) {
         const desatracYear = desatracacao.getFullYear();
         if (!isYearInRange(desatracYear)) {
-            errors.push(`Linha ${lineNumber}: ano da DESATRACACAO fora do intervalo permitido (2020-2030).`);
+            collector.add(lineNumber, 'DESATRACACAO', ERROR_CATEGORIES.DATE, 'Ano da DESATRACACAO fora do intervalo permitido (2020-2030).');
         }
         if (Number(row.ANO_DESAT) !== desatracYear) {
-            errors.push(`Linha ${lineNumber}: ANO_DESAT deve ser ${desatracYear}.`);
+            collector.add(lineNumber, 'ANO_DESAT', ERROR_CATEGORIES.CONSISTENCY, `ANO_DESAT deve ser ${desatracYear}.`);
         }
     }
 
     if (atracacao && desatracacao && desatracacao < atracacao) {
-        errors.push(`Linha ${lineNumber}: DESATRACACAO deve ser posterior ou igual à ATRACACAO.`);
+        collector.add(lineNumber, 'DESATRACACAO', ERROR_CATEGORIES.CONSISTENCY, 'DESATRACACAO deve ser posterior ou igual à ATRACACAO.');
     }
 }
 
@@ -309,6 +353,9 @@ function isYearInRange(year) {
 function resetUploadFeedback() {
     renderUploadErrors([]);
     showUploadSummary('', '');
+    renderErrorCharts({ errors: [], fieldCounts: new Map(), categoryCounts: new Map() });
+    renderUploadedChart([]);
+    UPLOAD_STATE.currentErrorPage = 1;
 }
 
 function showUploadSummary(message, type) {
@@ -325,17 +372,80 @@ function showUploadSummary(message, type) {
     container.className = `alert mt-3 alert-${type}`;
 }
 
-function renderUploadErrors(errors) {
+function renderUploadErrors(errors, forcedPage) {
+    const details = document.getElementById('upload-errors-details');
+    const summary = details ? details.querySelector('summary') : null;
     const list = document.getElementById('upload-errors');
-    if (!list) return;
+    const pagination = document.getElementById('upload-errors-pagination');
+    if (!list || !details || !pagination) return;
+
     list.innerHTML = '';
-    if (!errors.length) return;
-    errors.forEach((error) => {
+    pagination.innerHTML = '';
+
+    if (!errors.length) {
+        details.style.display = 'none';
+        details.open = false;
+        if (summary) {
+            summary.textContent = 'Ver detalhes dos erros';
+        }
+        return;
+    }
+
+    details.style.display = 'block';
+    if (summary) {
+        summary.textContent = `Ver detalhes dos erros (${errors.length})`;
+    }
+
+    const totalPages = Math.max(1, Math.ceil(errors.length / ERROR_PAGE_SIZE));
+    let currentPage = Number.isInteger(forcedPage) ? forcedPage : UPLOAD_STATE.currentErrorPage;
+    if (!currentPage) currentPage = 1;
+    currentPage = Math.min(Math.max(1, currentPage), totalPages);
+    UPLOAD_STATE.currentErrorPage = currentPage;
+    details.open = true;
+
+    const startIndex = (currentPage - 1) * ERROR_PAGE_SIZE;
+    const pageItems = errors.slice(startIndex, startIndex + ERROR_PAGE_SIZE);
+
+    pageItems.forEach((error) => {
         const li = document.createElement('li');
         li.className = 'list-group-item list-group-item-danger';
-        li.textContent = error;
+        const prefix = error.line ? `Linha ${error.line}: ` : '';
+        const fieldInfo = error.field ? `[${error.field}] ` : '';
+        li.textContent = `${prefix}${fieldInfo}${error.message}`;
         list.appendChild(li);
     });
+
+    const info = document.createElement('span');
+    info.className = 'text-muted small';
+    info.textContent = `Página ${currentPage} de ${totalPages}`;
+    pagination.appendChild(info);
+
+    if (totalPages > 1) {
+        const controls = document.createElement('div');
+        controls.className = 'btn-group btn-group-sm ms-auto';
+
+        const prevBtn = document.createElement('button');
+        prevBtn.type = 'button';
+        prevBtn.className = 'btn btn-outline-secondary';
+        prevBtn.textContent = 'Anterior';
+        prevBtn.disabled = currentPage === 1;
+        prevBtn.addEventListener('click', () => {
+            renderUploadErrors(errors, currentPage - 1);
+        });
+
+        const nextBtn = document.createElement('button');
+        nextBtn.type = 'button';
+        nextBtn.className = 'btn btn-outline-secondary';
+        nextBtn.textContent = 'Próxima';
+        nextBtn.disabled = currentPage === totalPages;
+        nextBtn.addEventListener('click', () => {
+            renderUploadErrors(errors, currentPage + 1);
+        });
+
+        controls.appendChild(prevBtn);
+        controls.appendChild(nextBtn);
+        pagination.appendChild(controls);
+    }
 }
 
 function renderUploadedChart(rows) {
@@ -350,15 +460,16 @@ function renderUploadedChart(rows) {
     const labels = Object.keys(counts);
     const dataValues = Object.values(counts);
 
-    if (window.myChart) {
-        window.myChart.destroy();
+    if (UPLOAD_STATE.charts.validData) {
+        UPLOAD_STATE.charts.validData.destroy();
+        UPLOAD_STATE.charts.validData = null;
     }
 
     const canvas = document.getElementById('chart');
-    if (!canvas) return;
+    if (!canvas || !labels.length) return;
     const ctx = canvas.getContext('2d');
 
-    window.myChart = new Chart(ctx, {
+    UPLOAD_STATE.charts.validData = new Chart(ctx, {
         type: 'bar',
         data: {
             labels,
@@ -376,6 +487,111 @@ function renderUploadedChart(rows) {
             },
         },
     });
+}
+
+function renderErrorCharts(validationResult) {
+    renderErrorFieldChart(validationResult.fieldCounts);
+    renderErrorCategoryChart(validationResult.categoryCounts);
+}
+
+function renderErrorFieldChart(fieldCounts) {
+    if (UPLOAD_STATE.charts.errorFields) {
+        UPLOAD_STATE.charts.errorFields.destroy();
+        UPLOAD_STATE.charts.errorFields = null;
+    }
+
+    const canvas = document.getElementById('uploadErrorsFieldChart');
+    if (!canvas) return;
+    const labels = Array.from(fieldCounts.keys());
+    if (!labels.length) {
+        canvas.getContext('2d').clearRect(0, 0, canvas.width, canvas.height);
+        return;
+    }
+    const data = labels.map((field) => fieldCounts.get(field));
+
+    UPLOAD_STATE.charts.errorFields = new Chart(canvas.getContext('2d'), {
+        type: 'bar',
+        data: {
+            labels,
+            datasets: [{
+                label: 'Erros por campo',
+                data,
+                backgroundColor: '#f97316',
+            }],
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                y: { beginAtZero: true },
+            },
+        },
+    });
+}
+
+function renderErrorCategoryChart(categoryCounts) {
+    if (UPLOAD_STATE.charts.errorCategories) {
+        UPLOAD_STATE.charts.errorCategories.destroy();
+        UPLOAD_STATE.charts.errorCategories = null;
+    }
+
+    const canvas = document.getElementById('uploadErrorsCategoryChart');
+    if (!canvas) return;
+    const labels = Array.from(categoryCounts.keys());
+    if (!labels.length) {
+        canvas.getContext('2d').clearRect(0, 0, canvas.width, canvas.height);
+        return;
+    }
+    const data = labels.map((category) => categoryCounts.get(category));
+    const paletteErrors = ['#ef4444', '#f97316', '#facc15', '#0ea5e9', '#a855f7', '#34d399'];
+
+    UPLOAD_STATE.charts.errorCategories = new Chart(canvas.getContext('2d'), {
+        type: 'doughnut',
+        data: {
+            labels,
+            datasets: [{
+                data,
+                backgroundColor: paletteErrors,
+            }],
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { position: 'bottom' },
+            },
+        },
+    });
+}
+
+function handleGenerateReport() {
+    if (!UPLOAD_STATE.errors.length) {
+        showUploadSummary('Nenhum erro disponível para gerar relatório.', 'info');
+        return;
+    }
+
+    const lines = [
+        'Relatório de validação CODEBA',
+        `Gerado em: ${new Date().toLocaleString('pt-BR')}`,
+        `Total de erros: ${UPLOAD_STATE.errors.length}`,
+        '',
+    ];
+
+    UPLOAD_STATE.errors.forEach((error) => {
+        const lineInfo = error.line ? `Linha ${error.line}` : 'Linha n/d';
+        const fieldInfo = error.field ? `Campo: ${error.field}` : 'Campo n/d';
+        lines.push(`${lineInfo} | ${fieldInfo} | Categoria: ${error.category} | ${error.message}`);
+    });
+
+    const blob = new Blob([lines.join('\n')], { type: 'text/plain;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `relatorio-erros-codeba-${Date.now()}.txt`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
 }
 
 function logout() {
