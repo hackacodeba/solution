@@ -27,6 +27,7 @@
         <button class="btn btn-light" onclick="showPortos()">Portos (Em breve)</button>
         <button class="btn btn-light" onclick="showKPIs()">KPIs (Em breve)</button>
         <button class="btn btn-light" onclick="showAnalises()">Analises</button>
+    <button class="btn btn-light" onclick="showCadastro()">Cadastro</button>
     </div>
 
     <div id="content">
@@ -167,7 +168,7 @@
             </div>
         </div>
 
-        <!-- Analysis Section -->
+    <!-- Analysis Section -->
         <div id="analises" style="display: none;">
             <div class="dashboard-header">
                 <h1>Análises Operacionais</h1>
@@ -244,6 +245,147 @@
                                         <div id="upload-errors-pagination" class="d-flex align-items-center gap-2 mt-3"></div>
                                     </div>
                                 </details>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Cadastro Section -->
+        <div id="cadastro" style="display: none;">
+            <div class="dashboard-header">
+                <h1>Cadastro Operacional</h1>
+                <p>Registre novas atracações utilizando o mesmo padrão de dados do CSV CODEBA.</p>
+            </div>
+
+            <div class="container mt-4">
+                <div class="row g-4">
+                    <div class="col-lg-6">
+                        <div class="card h-100">
+                            <div class="card-header">Novo registro</div>
+                            <div class="card-body">
+                                <form id="cadastro-form" class="row g-3">
+                                    <div class="col-md-6">
+                                        <label for="cadastro-sentido" class="form-label">Sentido</label>
+                                        <select id="cadastro-sentido" name="SENTIDO" class="form-select" required>
+                                            <option value="">Selecione</option>
+                                            <option value="Descarga">Descarga</option>
+                                            <option value="Embarque">Embarque</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label for="cadastro-navegacao" class="form-label">Navegação</label>
+                                        <select id="cadastro-navegacao" name="NAVEGACAO" class="form-select" required>
+                                            <option value="">Selecione</option>
+                                            <option value="LC">LC</option>
+                                            <option value="CB">CB</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label for="cadastro-porto" class="form-label">Porto de atracação</label>
+                                        <select id="cadastro-porto" name="PORTO_ATRACACAO" class="form-select" required>
+                                            <option value="">Selecione</option>
+                                            <option value="Salvador">Salvador</option>
+                                            <option value="Aratu">Aratu</option>
+                                            <option value="Ilhéus">Ilhéus</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label for="cadastro-berco" class="form-label">Berço</label>
+                                        <select id="cadastro-berco" name="BERCO" class="form-select" required>
+                                            <option value="">Selecione</option>
+                                            <option value="101">101</option>
+                                            <option value="102">102</option>
+                                            <option value="103">103</option>
+                                            <option value="104">104</option>
+                                            <option value="105">105</option>
+                                            <option value="201">201</option>
+                                            <option value="202">202</option>
+                                            <option value="203">203</option>
+                                            <option value="205">205</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label for="cadastro-navio" class="form-label">Navio</label>
+                                        <input type="text" id="cadastro-navio" name="NAVIO" class="form-control" placeholder="Ex: Navio 21" required>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label for="cadastro-imo" class="form-label">IMO</label>
+                                        <input type="text" id="cadastro-imo" name="IMO" class="form-control" pattern="\d{7}" maxlength="7" placeholder="7 dígitos" required>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label for="cadastro-tipo-carga" class="form-label">Tipo de carga</label>
+                                        <select id="cadastro-tipo-carga" name="TIPO_CARGA" class="form-select" required>
+                                            <option value="">Selecione</option>
+                                            <option value="Carga 1">Carga 1</option>
+                                            <option value="Carga 2">Carga 2</option>
+                                            <option value="Carga 3">Carga 3</option>
+                                            <option value="Carga 4">Carga 4</option>
+                                            <option value="Carga 5">Carga 5</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label for="cadastro-tipo-carga-macro" class="form-label">Macro categoria</label>
+                                        <select id="cadastro-tipo-carga-macro" name="TIPO_CARGA_MACRO" class="form-select" required>
+                                            <option value="">Selecione</option>
+                                            <option value="CARGA GERAL">CARGA GERAL</option>
+                                            <option value="GRANEL LÍQUIDO">GRANEL LÍQUIDO</option>
+                                            <option value="GRANEL SÓLIDO">GRANEL SÓLIDO</option>
+                                            <option value="PROJETO">PROJETO</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label for="cadastro-atracacao" class="form-label">Data/hora de atracação</label>
+                                        <input type="datetime-local" id="cadastro-atracacao" name="ATRACACAO" class="form-control" required>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label for="cadastro-desatracacao" class="form-label">Data/hora de desatracação</label>
+                                        <input type="datetime-local" id="cadastro-desatracacao" name="DESATRACACAO" class="form-control" required>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label for="cadastro-tempo" class="form-label">Tempo de estadia (horas)</label>
+                                        <input type="number" id="cadastro-tempo" name="TEMPO_ESTADIA_HORAS" class="form-control" min="0" step="1" required>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label for="cadastro-grupo" class="form-label">Grupo ANTAQ</label>
+                                        <input type="text" id="cadastro-grupo" name="GRUPOANTAQ" class="form-control" placeholder="Ex: Grupo 4" required>
+                                    </div>
+                                    <div class="col-12">
+                                        <label for="cadastro-observacoes" class="form-label">Observações</label>
+                                        <textarea id="cadastro-observacoes" name="OBSERVACOES" class="form-control" rows="2" placeholder="Detalhes adicionais"></textarea>
+                                    </div>
+                                    <div class="col-12 d-flex gap-2">
+                                        <button type="submit" class="btn btn-primary">Salvar registro</button>
+                                        <button type="reset" class="btn btn-outline-secondary">Limpar</button>
+                                    </div>
+                                    <div class="col-12">
+                                        <div id="cadastro-feedback" class="alert mt-2" style="display:none;"></div>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-lg-6">
+                        <div class="card h-100">
+                            <div class="card-header">Registros persistidos</div>
+                            <div class="card-body">
+                                <p class="text-muted" id="cadastro-empty">Nenhum registro cadastrado ainda.</p>
+                                <div class="table-responsive" style="max-height: 420px;">
+                                    <table class="table table-sm align-middle">
+                                        <thead>
+                                            <tr>
+                                                <th>Navio</th>
+                                                <th>Porto</th>
+                                                <th>Atracação</th>
+                                                <th>Carga</th>
+                                                <th></th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="cadastro-table-body"></tbody>
+                                    </table>
+                                </div>
+                                <button id="cadastro-export" class="btn btn-outline-primary btn-sm mt-3" type="button">Exportar JSON</button>
                             </div>
                         </div>
                     </div>

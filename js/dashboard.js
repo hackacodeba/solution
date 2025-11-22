@@ -34,6 +34,8 @@ const UPLOAD_STATE = {
 };
 
 const ERROR_PAGE_SIZE = 8;
+const SECTION_IDS = ['overview', 'analises', 'cadastro'];
+const CADASTRO_STORAGE_KEY = 'codebasight_cadastros';
 
 // --- Upload CSV validation constants ---
 const EXPECTED_HEADERS = [
@@ -79,17 +81,29 @@ const ERROR_CATEGORIES = {
     CONSISTENCY: 'Consistência',
 };
 
+function setActiveSection(sectionId) {
+    SECTION_IDS.forEach((id) => {
+        const section = document.getElementById(id);
+        if (section) {
+            section.style.display = id === sectionId ? 'block' : 'none';
+        }
+    });
+}
+
 function showOverview() {
-    document.getElementById('overview').style.display = 'block';
-    document.getElementById('analises').style.display = 'none';
+    setActiveSection('overview');
 }
 
 function showAnalises() {
-    document.getElementById('overview').style.display = 'none';
-    document.getElementById('analises').style.display = 'block';
+    setActiveSection('analises');
     if (typeof window.initAnalisesDashboard === 'function') {
         window.initAnalisesDashboard();
     }
+}
+
+function showCadastro() {
+    setActiveSection('cadastro');
+    renderCadastroTable();
 }
 
 function showPortos() {
@@ -143,6 +157,28 @@ function handleFile(event) {
 
 document.getElementById('fileInput').addEventListener('change', handleFile);
 document.getElementById('generate-report').addEventListener('click', handleGenerateReport);
+
+const cadastroForm = document.getElementById('cadastro-form');
+if (cadastroForm) {
+    cadastroForm.addEventListener('submit', handleCadastroSubmit);
+}
+
+const cadastroTableBody = document.getElementById('cadastro-table-body');
+if (cadastroTableBody) {
+    cadastroTableBody.addEventListener('click', (event) => {
+        const target = event.target;
+        if (target.matches('[data-remove-cadastro]')) {
+            const id = Number(target.getAttribute('data-remove-cadastro'));
+            removeCadastroRecord(id);
+        }
+    });
+    renderCadastroTable();
+}
+
+const cadastroExportButton = document.getElementById('cadastro-export');
+if (cadastroExportButton) {
+    cadastroExportButton.addEventListener('click', handleCadastroExport);
+}
 
 function parseCsvContent(text) {
     const lines = text.split(/\r?\n/).filter((line) => line.trim().length);
@@ -596,4 +632,117 @@ function handleGenerateReport() {
 
 function logout() {
     window.location.href = '../index.html';
+}
+
+// --- Cadastro persistence ---
+
+function getCadastroRecords() {
+    try {
+        const raw = localStorage.getItem(CADASTRO_STORAGE_KEY);
+        return raw ? JSON.parse(raw) : [];
+    } catch (error) {
+        console.error('Erro ao carregar cadastros', error);
+        return [];
+    }
+}
+
+function saveCadastroRecords(records) {
+    localStorage.setItem(CADASTRO_STORAGE_KEY, JSON.stringify(records));
+}
+
+function handleCadastroSubmit(event) {
+    event.preventDefault();
+    const form = event.target;
+    const formData = new FormData(form);
+    const record = { id: Date.now(), createdAt: new Date().toISOString() };
+
+    formData.forEach((value, key) => {
+        record[key] = typeof value === 'string' ? value.trim() : value;
+    });
+
+    const records = getCadastroRecords();
+    records.unshift(record);
+    saveCadastroRecords(records);
+    form.reset();
+    showCadastroFeedback('Registro salvo com sucesso e persistido localmente.', 'success');
+    renderCadastroTable();
+}
+
+function renderCadastroTable() {
+    const tbody = document.getElementById('cadastro-table-body');
+    const emptyState = document.getElementById('cadastro-empty');
+    if (!tbody) return;
+
+    const records = getCadastroRecords();
+    tbody.innerHTML = '';
+
+    if (!records.length) {
+        if (emptyState) emptyState.style.display = 'block';
+        return;
+    }
+
+    if (emptyState) emptyState.style.display = 'none';
+
+    records.forEach((record) => {
+        const tr = document.createElement('tr');
+        const atracacaoLabel = formatDateLabel(record.ATRACACAO);
+
+        tr.innerHTML = `
+            <td>${record.NAVIO || '-'}<br><small class="text-muted">IMO ${record.IMO || 'n/d'}</small></td>
+            <td>${record.PORTO_ATRACACAO || '-'}<br><small class="text-muted">Berço ${record.BERCO || 'n/d'}</small></td>
+            <td>${atracacaoLabel}</td>
+            <td>${record.TIPO_CARGA || '-'}<br><small class="text-muted">${record.TIPO_CARGA_MACRO || ''}</small></td>
+            <td class="text-end"><button type="button" class="btn btn-sm btn-outline-danger" data-remove-cadastro="${record.id}">Excluir</button></td>
+        `;
+        tbody.appendChild(tr);
+    });
+}
+
+function removeCadastroRecord(id) {
+    const records = getCadastroRecords();
+    const filtered = records.filter((item) => item.id !== id);
+    saveCadastroRecords(filtered);
+    renderCadastroTable();
+}
+
+function handleCadastroExport() {
+    const records = getCadastroRecords();
+    if (!records.length) {
+        showCadastroFeedback('Não há registros para exportar.', 'info');
+        return;
+    }
+
+    const blob = new Blob([JSON.stringify(records, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `cadastros-codeba-${Date.now()}.json`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+    showCadastroFeedback('Arquivo JSON exportado com sucesso.', 'success');
+}
+
+function showCadastroFeedback(message, type) {
+    const container = document.getElementById('cadastro-feedback');
+    if (!container) return;
+    if (!message) {
+        container.style.display = 'none';
+        container.textContent = '';
+        container.className = 'alert mt-2';
+        return;
+    }
+    container.textContent = message;
+    container.className = `alert mt-2 alert-${type}`;
+    container.style.display = 'block';
+}
+
+function formatDateLabel(value) {
+    if (!value) return '-';
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) {
+        return value;
+    }
+    return date.toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' });
 }
