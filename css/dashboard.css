@@ -21,7 +21,7 @@ body {
 #top-header {
     position: fixed;
     top: 0;
-    left: 240px;
+    left: 260px;
     right: 320px;
     padding: 1.25rem 2rem;
     display: flex;
@@ -63,7 +63,7 @@ body {
 }
 
 #sidebar {
-    width: 240px;
+    width: 260px;
     height: 100vh;
     background: linear-gradient(180deg, #0f172a 0%, #1e293b 100%);
     color: white;
@@ -71,6 +71,7 @@ body {
     left: 0;
     top: 0;
     padding: 24px;
+    box-sizing: border-box;
     display: flex;
     flex-direction: column;
     gap: 0.75rem;
@@ -79,9 +80,11 @@ body {
 
 #sidebar h3 {
     margin-bottom: 1.5rem;
-    letter-spacing: 0.1em;
+    letter-spacing: 0.06em;
     font-weight: 600;
     text-transform: uppercase;
+    font-size: 1rem;
+    word-break: break-word;
 }
 
 #sidebar button {
@@ -103,7 +106,7 @@ body {
 }
 
 #content {
-    margin-left: 240px;
+    margin-left: 260px;
     margin-right: 320px;
     padding: 120px 40px 40px;
 }
@@ -153,19 +156,21 @@ body {
 #right-sidebar {
     width: 320px;
     height: 100vh;
-    background: #ffffff;
+    background: linear-gradient(135deg, #1d4ed8, #2563eb);
     position: fixed;
     right: 0;
     top: 0;
-    padding: 24px;
+    padding: 0;
     box-shadow: -20px 0 35px rgba(15, 23, 42, 0.08);
-    overflow-y: auto;
-    border-left: 1px solid var(--border);
+    overflow: hidden;
+    border-left: none;
 }
 
-#right-sidebar h3 {
-    font-weight: 600;
-    color: var(--text);
+#right-sidebar iframe {
+    width: 100%;
+    height: 100%;
+    border: 0;
+    display: block;
 }
 
 @media (max-width: 1200px) {
