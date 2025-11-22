@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard Analítico - CODEBA</title>
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="../css/dashboard.css">
+    <!-- SheetJS for Excel parsing -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <!-- Chart.js for charts -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <header id="top-header">
+        <button class="btn btn-light logout-btn" onclick="logout()">Logout</button>
+    </header>
+
+    <div id="sidebar">
+        <h3>CODEBASIGHT</h3>
+        <button class="btn btn-light" onclick="showOverview()">Overview</button>
+        <button class="btn btn-light" onclick="showPortos()">Portos (Em breve)</button>
+        <button class="btn btn-light" onclick="showKPIs()">KPIs (Em breve)</button>
+        <button class="btn btn-light" onclick="showAnalises()">Analises</button>
+    </div>
+
+    <div id="content">
+        <!-- Overview Section -->
+        <div id="overview">
+            <div class="dashboard-header">
+                <h1>Dashboard Analítico - CODEBA</h1>
+                <p>Visão Geral dos Portos Administrados</p>
+            </div>
+
+            <div class="container mt-4">
+                <!-- Visão Geral -->
+                <div class="row">
+                    <div class="col-md-12">
+                        <div class="card">
+                            <div class="card-header">Visão Geral da CODEBA</div>
+                            <div class="card-body">
+                                <p>A Companhia das Docas do Estado da Bahia (CODEBA) administra três portos públicos: Salvador, Aratu-Candeias e Ilhéus. Esses portos têm papéis complementares na logística regional, alinhados à missão de gerir, explorar e desenvolver portos de forma eficiente e sustentável.</p>
+                                <ul>
+                                    <li><strong>Salvador:</strong> Hub polivalente com foco em contêineres, carga geral e turismo.</li>
+                                    <li><strong>Aratu-Candeias:</strong> Principal porto industrial, especializado em granéis líquidos e sólidos.</li>
+                                    <li><strong>Ilhéus:</strong> Porto agrícola, dedicado ao escoamento de commodities como cacau, soja e milho.</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Indicadores-Chave -->
+                <div class="row">
+                    <div class="col-md-4">
+                        <div class="card">
+                            <div class="card-header">Tempo Médio de Estadia (Horas)</div>
+                            <div class="card-body">
+                                <canvas id="chartEstadia" width="200" height="200"></canvas>
+                                <ul class="list-unstyled mt-2">
+                                    <li>Salvador: 18.1h</li>
+                                    <li>Aratu-Candeias: 19.2h</li>
+                                    <li>Ilhéus: 20.3h</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="card">
+                            <div class="card-header">Número de Navios (2024)</div>
+                            <div class="card-body">
+                                <canvas id="chartNavios" width="200" height="200"></canvas>
+                                <ul class="list-unstyled mt-2">
+                                    <li>Salvador: 230</li>
+                                    <li>Aratu-Candeias: 180</li>
+                                    <li>Ilhéus: 150</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="card">
+                            <div class="card-header">Principais Tipos de Carga</div>
+                            <div class="card-body">
+                                <table class="table table-sm">
+                                    <thead>
+                                        <tr>
+                                            <th>Porto</th>
+                                            <th>Tipo de Carga</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <td>Salvador</td>
+                                            <td>Conteinerizada, Geral</td>
+                                        </tr>
+                                        <tr>
+                                            <td>Aratu-Candeias</td>
+                                            <td>Granel Líquido, Sólido</td>
+                                        </tr>
+                                        <tr>
+                                            <td>Ilhéus</td>
+                                            <td>Granel Sólido (Agrícola)</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Detalhes por Porto -->
+                <div class="row">
+                    <div class="col-md-4">
+                        <div class="card">
+                            <div class="card-header">Porto de Salvador</div>
+                            <div class="card-body">
+                                <p>Hub polivalente equilibrando comércio e turismo. Atende contêineres, carga geral e trigo.</p>
+                                <p><strong>Berços:</strong> 201-205</p>
+                                <p><strong>Infraestrutura:</strong> Terminal de 117 mil m², dragagem para pós-Panamax.</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="card">
+                            <div class="card-header">Porto de Aratu-Candeias</div>
+                            <div class="card-body">
+                                <p>Principal porto industrial, 60% da carga marítima estadual. Focado em granéis e integração com Polo Industrial.</p>
+                                <p><strong>Berços:</strong> Grande calado, 4 terminais.</p>
+                                <p><strong>Infraestrutura:</strong> Conexões por dutos com refinarias.</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="card">
+                            <div class="card-header">Porto de Ilhéus</div>
+                            <div class="card-body">
+                                <p>Vocação para agronegócio, escoamento de produtos agrícolas do sul e oeste da Bahia.</p>
+                                <p><strong>Berços:</strong> 101-105</p>
+                                <p><strong>Infraestrutura:</strong> Planejamento para picos sazonais.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Recomendações -->
+                <div class="row">
+                    <div class="col-md-12">
+                        <div class="card">
+                            <div class="card-header">Recomendações Operacionais</div>
+                            <div class="card-body">
+                                <ul>
+                                    <li>Otimizar uso de berços em Salvador para reduzir filas no Berço 201.</li>
+                                    <li>Investir em infraestrutura para granéis em Aratu-Candeias.</li>
+                                    <li>Reforçar recursos em Ilhéus durante a safra agrícola.</li>
+                                    <li>Implementar validações automáticas para qualidade de dados.</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Analysis Section -->
+        <div id="analises" style="display: none;">
+            <div class="dashboard-header">
+                <h1>Análise de Dados - CODEBA</h1>
+                <p>Upload e Análise de Arquivos Excel</p>
+            </div>
+
+            <div class="container mt-4">
+                <div class="row">
+                    <div class="col-md-12">
+                        <div class="card">
+                            <div class="card-header">Upload de Arquivo Excel</div>
+                            <div class="card-body">
+                                <input type="file" id="fileInput" accept=".xlsx,.xls" class="form-control mb-3">
+                                <p>Selecione um arquivo Excel (.xlsx ou .xls) para gerar um gráfico baseado nos dados.</p>
+                                <canvas id="chart" width="400" height="200"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="right-sidebar">
+        <h3>Widget de Suporte</h3>
+        <iframe
+            src="https://www.chatbase.co/chatbot-iframe/qx4c2ZSLm8IMs79C7vXOs"
+            width="100%"
+            style="height: 100%; min-height: 700px"
+            frameborder="0"
+        ></iframe>
+    </div>
+
+    <div id="right-sidebar">
+        <h3>Widget de Suporte</h3>
+        <iframe
+            src="https://www.chatbase.co/chatbot-iframe/qx4c2ZSLm8IMs79C7vXOs"
+            width="100%"
+            style="height: 100%; min-height: 700px"
+            frameborder="0"
+        ></iframe>
+    </div>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="../js/dashboard.js"></script>
+</body>
+</html>
