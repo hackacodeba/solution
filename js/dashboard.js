@@ -36,6 +36,26 @@ const UPLOAD_STATE = {
 const ERROR_PAGE_SIZE = 8;
 const SECTION_IDS = ['overview', 'analises', 'cadastro'];
 const CADASTRO_STORAGE_KEY = 'codebasight_cadastros';
+const PANEL_RESIZE_CONFIG = {
+    sidebar: {
+        cssVar: '--sidebar-width',
+        storageKey: 'codebasight_sidebar_width',
+        resizerId: 'sidebar-resizer',
+        min: 200,
+        max: 420,
+        direction: 'ltr',
+        collapsedClass: 'sidebar-collapsed',
+    },
+    chat: {
+        cssVar: '--chat-width',
+        storageKey: 'codebasight_chat_width',
+        resizerId: 'chat-resizer',
+        min: 240,
+        max: 520,
+        direction: 'rtl',
+        collapsedClass: 'chat-collapsed',
+    },
+};
 
 // --- Upload CSV validation constants ---
 const EXPECTED_HEADERS = [
@@ -179,6 +199,23 @@ const cadastroExportButton = document.getElementById('cadastro-export');
 if (cadastroExportButton) {
     cadastroExportButton.addEventListener('click', handleCadastroExport);
 }
+
+const layoutToggles = [
+    { id: 'sidebar-handle', bodyClass: 'sidebar-collapsed' },
+    { id: 'chat-handle', bodyClass: 'chat-collapsed' },
+];
+
+layoutToggles.forEach(({ id, bodyClass }) => {
+    const button = document.getElementById(id);
+    if (!button) return;
+    button.addEventListener('click', () => {
+        const collapsed = document.body.classList.toggle(bodyClass);
+        updateToggleButtonState(button, collapsed);
+    });
+    updateToggleButtonState(button, document.body.classList.contains(bodyClass));
+});
+
+initPanelResizers();
 
 function parseCsvContent(text) {
     const lines = text.split(/\r?\n/).filter((line) => line.trim().length);
@@ -745,4 +782,100 @@ function formatDateLabel(value) {
         return value;
     }
     return date.toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' });
+}
+
+function updateToggleButtonState(button, collapsed) {
+    const expandedLabel = button.getAttribute('data-expanded-label') || '';
+    const collapsedLabel = button.getAttribute('data-collapsed-label') || '';
+    const expandedIcon = button.getAttribute('data-expanded-icon') || '';
+    const collapsedIcon = button.getAttribute('data-collapsed-icon') || '';
+    const iconSpan = button.querySelector('.edge-icon');
+
+    button.setAttribute('aria-pressed', collapsed ? 'false' : 'true');
+    if (expandedLabel && collapsedLabel) {
+        button.setAttribute('title', collapsed ? collapsedLabel : expandedLabel);
+    }
+    if (iconSpan && expandedIcon && collapsedIcon) {
+        iconSpan.textContent = collapsed ? collapsedIcon : expandedIcon;
+    }
+}
+
+function initPanelResizers() {
+    Object.values(PANEL_RESIZE_CONFIG).forEach((config) => {
+        const resizer = document.getElementById(config.resizerId);
+        if (!resizer) return;
+
+        const storedWidth = getStoredPanelWidth(config);
+        if (storedWidth !== null) {
+            setPanelWidth(config, storedWidth, { persist: false });
+        }
+
+        resizer.addEventListener('pointerdown', (event) => {
+            if (document.body.classList.contains(config.collapsedClass)) return;
+            startPanelResize(event, config);
+        });
+
+        resizer.addEventListener('keydown', (event) => {
+            if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') return;
+            event.preventDefault();
+            const current = getCurrentPanelWidth(config);
+            const delta = (event.key === 'ArrowRight' ? 10 : -10) * (config.direction === 'rtl' ? -1 : 1);
+            setPanelWidth(config, current + delta);
+        });
+    });
+}
+
+function startPanelResize(event, config) {
+    event.preventDefault();
+    const target = event.target;
+    const pointerId = event.pointerId;
+    if (target.setPointerCapture) {
+        target.setPointerCapture(pointerId);
+    }
+    const startX = event.clientX;
+    const startWidth = getCurrentPanelWidth(config);
+
+    function handlePointerMove(moveEvent) {
+        const delta = config.direction === 'ltr'
+            ? moveEvent.clientX - startX
+            : startX - moveEvent.clientX;
+        setPanelWidth(config, startWidth + delta, { persist: false });
+    }
+
+    function handlePointerUp() {
+        setPanelWidth(config, getCurrentPanelWidth(config));
+        document.removeEventListener('pointermove', handlePointerMove);
+        document.removeEventListener('pointerup', handlePointerUp);
+        if (target.releasePointerCapture) {
+            target.releasePointerCapture(pointerId);
+        }
+    }
+
+    document.addEventListener('pointermove', handlePointerMove);
+    document.addEventListener('pointerup', handlePointerUp, { once: true });
+}
+
+function getCurrentPanelWidth(config) {
+    const value = getComputedStyle(document.documentElement).getPropertyValue(config.cssVar);
+    const parsed = Number.parseFloat(value);
+    return Number.isNaN(parsed) ? 0 : parsed;
+}
+
+function getStoredPanelWidth(config) {
+    const stored = localStorage.getItem(config.storageKey);
+    if (!stored) return null;
+    const parsed = Number.parseFloat(stored);
+    return Number.isNaN(parsed) ? null : parsed;
+}
+
+function setPanelWidth(config, width, options = { persist: true }) {
+    const clamped = clamp(width, config.min, config.max);
+    document.documentElement.style.setProperty(config.cssVar, `${clamped}px`);
+    if (options.persist !== false) {
+        localStorage.setItem(config.storageKey, String(clamped));
+    }
+}
+
+function clamp(value, min, max) {
+    return Math.min(Math.max(value, min), max);
 }

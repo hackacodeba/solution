@@ -9,6 +9,8 @@
     --border: #e2e8f0;
     --text: #0f172a;
     --muted: #64748b;
+    --sidebar-width: 260px;
+    --chat-width: 320px;
 }
 
 body {
@@ -21,8 +23,8 @@ body {
 #top-header {
     position: fixed;
     top: 0;
-    left: 260px;
-    right: 320px;
+    left: var(--sidebar-width);
+    right: var(--chat-width);
     padding: 1.25rem 2rem;
     display: flex;
     align-items: center;
@@ -33,6 +35,7 @@ body {
     border-bottom-right-radius: 1rem;
     box-shadow: 0 20px 40px rgba(37, 99, 235, 0.18);
     z-index: 900;
+    transition: left 0.3s ease, right 0.3s ease;
 }
 
 #top-header .header-brand {
@@ -63,7 +66,7 @@ body {
 }
 
 #sidebar {
-    width: 260px;
+    width: var(--sidebar-width);
     height: 100vh;
     background: linear-gradient(180deg, #0f172a 0%, #1e293b 100%);
     color: white;
@@ -76,6 +79,7 @@ body {
     flex-direction: column;
     gap: 0.75rem;
     box-shadow: 0 15px 35px rgba(15, 23, 42, 0.4);
+    transition: transform 0.3s ease, opacity 0.3s ease;
 }
 
 #sidebar h3 {
@@ -106,9 +110,10 @@ body {
 }
 
 #content {
-    margin-left: 260px;
-    margin-right: 320px;
+    margin-left: var(--sidebar-width);
+    margin-right: var(--chat-width);
     padding: 120px 40px 40px;
+    transition: margin 0.3s ease;
 }
 
 .filters-panel {
@@ -210,7 +215,7 @@ body {
 }
 
 #right-sidebar {
-    width: 320px;
+    width: var(--chat-width);
     height: 100vh;
     background: linear-gradient(135deg, #1d4ed8, #2563eb);
     position: fixed;
@@ -220,6 +225,7 @@ body {
     box-shadow: -20px 0 35px rgba(15, 23, 42, 0.08);
     overflow: hidden;
     border-left: none;
+    transition: transform 0.3s ease;
 }
 
 #right-sidebar iframe {
@@ -227,6 +233,107 @@ body {
     height: 100%;
     border: 0;
     display: block;
+}
+
+.edge-toggle {
+    position: fixed;
+    top: 50%;
+    transform: translateY(-50%);
+    border: none;
+    background: var(--surface);
+    color: var(--brand-dark);
+    box-shadow: 0 10px 25px rgba(15, 23, 42, 0.2);
+    border-radius: 999px;
+    width: 46px;
+    height: 46px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    z-index: 950;
+    transition: background 0.2s ease, color 0.2s ease;
+}
+
+.edge-toggle:hover {
+    background: var(--brand);
+    color: #fff;
+}
+
+.edge-toggle-left {
+    left: calc(var(--sidebar-width) - 10px);
+}
+
+.edge-toggle-right {
+    right: calc(var(--chat-width) - 20px);
+}
+
+.edge-icon {
+    font-size: 1.35rem;
+    line-height: 1;
+}
+
+body.sidebar-collapsed .edge-toggle-left {
+    left: 10px;
+}
+
+body.chat-collapsed .edge-toggle-right {
+    right: 10px;
+}
+
+.panel-resizer {
+    position: fixed;
+    top: 0;
+    bottom: 0;
+    width: 6px;
+    cursor: col-resize;
+    z-index: 940;
+    background: transparent;
+    transition: background 0.2s ease;
+}
+
+.panel-resizer:hover,
+.panel-resizer:focus-visible {
+    background: rgba(30, 64, 175, 0.15);
+}
+
+.panel-resizer-left {
+    left: calc(var(--sidebar-width) - 3px);
+}
+
+.panel-resizer-right {
+    right: calc(var(--chat-width) - 3px);
+}
+
+body.sidebar-collapsed #sidebar-resizer,
+body.chat-collapsed #chat-resizer {
+    display: none;
+}
+
+body.sidebar-collapsed #sidebar {
+    transform: translateX(-100%);
+    opacity: 0;
+    pointer-events: none;
+}
+
+body.sidebar-collapsed #content {
+    margin-left: 40px;
+}
+
+body.sidebar-collapsed #top-header {
+    left: 40px;
+}
+
+body.chat-collapsed #right-sidebar {
+    transform: translateX(100%);
+    pointer-events: none;
+}
+
+body.chat-collapsed #content {
+    margin-right: 40px;
+}
+
+body.chat-collapsed #top-header {
+    right: 40px;
 }
 
 @media (max-width: 1200px) {
@@ -237,6 +344,18 @@ body {
         right: 0;
     }
     #content {
+        margin-right: 0;
+    }
+    .edge-toggle-right {
+        display: none;
+    }
+    .panel-resizer-right {
+        display: none;
+    }
+    body.chat-collapsed #top-header {
+        right: 0;
+    }
+    body.chat-collapsed #content {
         margin-right: 0;
     }
 }
@@ -257,5 +376,17 @@ body {
     #content {
         margin-left: 0;
         padding: 2rem 1.5rem;
+    }
+    .edge-toggle-left {
+        display: none;
+    }
+    .panel-resizer-left {
+        display: none;
+    }
+    body.sidebar-collapsed #content {
+        margin-left: 0;
+    }
+    body.sidebar-collapsed #top-header {
+        left: 0;
     }
 }
