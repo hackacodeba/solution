@@ -35,11 +35,11 @@ const UPLOAD_STATE = {
 
 const ERROR_PAGE_SIZE = 8;
 const SECTION_IDS = ['overview', 'analises', 'cadastro'];
-const CADASTRO_STORAGE_KEY = 'codebasight_cadastros';
+const CADASTRO_STORAGE_KEY = 'CODESIGHT_cadastros';
 const PANEL_RESIZE_CONFIG = {
     sidebar: {
         cssVar: '--sidebar-width',
-        storageKey: 'codebasight_sidebar_width',
+        storageKey: 'CODESIGHT_sidebar_width',
         resizerId: 'sidebar-resizer',
         min: 200,
         max: 420,
@@ -48,7 +48,7 @@ const PANEL_RESIZE_CONFIG = {
     },
     chat: {
         cssVar: '--chat-width',
-        storageKey: 'codebasight_chat_width',
+        storageKey: 'CODESIGHT_chat_width',
         resizerId: 'chat-resizer',
         min: 240,
         max: 520,

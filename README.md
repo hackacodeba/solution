@@ -1,4 +1,4 @@
-# CODEBASIGHT — Visualizador de Dados de Porto
+# CODESIGHT — Visualizador de Dados de Porto
 
 Este repositório contém uma interface front-end simples em HTML/CSS/JS para visualização de dados portuários (ex.: atracações, tipos de carga, navios). O projeto é estático — não há backend — e foi pensado para ser executado localmente em qualquer navegador moderno.
 
